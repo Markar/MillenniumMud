@@ -127,6 +127,9 @@ class Character(ObjectParent, ClothedCharacter):
         self.traits.add("fp", "Focus", trait_type="gauge", base=50, mod=0, rate=0.1)
         self.traits.add("ep", "Energy", trait_type="gauge", base=50, mod=0, rate=0.1)
 
+        self.db.gxp = 0
+        self.db.gxp_rate = 0
+
         # resource stats
 
         self.db.fpregen = 1
@@ -816,8 +819,15 @@ class NPC(Character):
     def at_object_creation(self):
         super().at_object_creation()
 
+        self.db.timed_go_home = False
+        self.db.regenerating = False
+
     def go_home(self):
         self.move_to(self.home)
+
+    def at_depart_go_home(self):
+        if self.db.timed_go_home:
+            self.go_home()
 
     def get_display_name(self, looker, **kwargs):
         """
@@ -857,9 +867,25 @@ class NPC(Character):
             if exits:
                 # use the exit
                 speed_trait = self.traits.get("speed")
-                speed = speed_trait.current if speed_trait else 0.9
+                speed = speed_trait.current if speed_trait else 10
+                speed = speed / 10
                 target.msg(f"{self} follows you! {speed}")
                 delay(speed, lambda: self.follow_and_attack(target, exits[0].name))
+
+        if not self.db.timed_go_home:
+            self.db.timed_go_home = True
+            delay(60, self.go_home, persistent=True)
+
+        if not self.db.in_combat:
+            self.msg(f"{self} is no longer in combat after departure.")
+            delay(10, self.start_regenerating, persistent=True)
+
+    def start_regenerating(self):
+        self.msg(f"{self} starts regenerating.")
+        self.db.regenerating = True
+        rate = self.traits.hp.base * 0.05
+        self.traits.hp.rate = rate
+        self.traits.hp.ratetarget = self.traits.hp.base
 
     def follow_and_attack(self, target, exit):
         """
@@ -900,6 +926,11 @@ class NPC(Character):
         """
         Apply damage, after taking into account damage resistances.
         """
+
+        if self.db.regenerating:
+            self.db.regenerating = False
+            self.traits.hp.rate = 0
+
         # apply armor damage reduction
         damage -= self.defense(damage_type)
         if damage < 0:
@@ -913,9 +944,12 @@ class NPC(Character):
 
         # this gets the color name of the attacker, so default Cyan
         # f"{self.get_display_name(attacker)}"
-        attacker.get_player_attack_hit_message(
-            attacker, damage, f"{self.name.title()}", emote
-        )
+        if attacker.tags.has("player", "type"):
+            attacker.get_player_attack_hit_message(
+                attacker, damage, f"{self.name.title()}", emote
+            )
+        else:
+            attacker.get_npc_attack_emote(attacker, damage, f"{self.name.title()}")
 
         if self.traits.hp.current <= 0:
             self.tags.add("defeated", category="status")
@@ -990,6 +1024,7 @@ class NPC(Character):
     def attack(self, target, weapon, **kwargs):
         # can't attack if we're not in combat, or if we're fleeing
         if not self.in_combat or self.db.fleeing:
+            self.msg(f"Return early attack {self.in_combat} and {self.db.fleeing}")
             return
 
         # if target is not set, use stored target

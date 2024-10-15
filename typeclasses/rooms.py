@@ -55,9 +55,12 @@ class RoomParent(ObjectParent):
         if combat := self.scripts.get("combat"):
             combat = combat[0]
             combat.remove_combatant(mover)
+            mover.msg("after combat script")
         # only react if the arriving object is a character
         if "character" in mover._content_types:
+            mover.msg(f"in character check")
             for obj in self.contents_get(content_type="character"):
+                mover.msg(f"for object {obj}")
                 if obj == mover:
                     # don't react to ourself
                     continue

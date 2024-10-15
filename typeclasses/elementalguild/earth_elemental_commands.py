@@ -458,15 +458,11 @@ class CmdTerranRestoration(PowerCommand):
             self.msg(f"|rYou can't seem to focus on restoring your form.")
             return
 
-        if hp + to_heal > hpmax:
-            caller.traits.hp.current = hpmax
-            caller.traits.fp.current -= self.cost
-        else:
-            caller.traits.hp.current += max(to_heal, 0)
-            caller.traits.fp.current -= self.cost
-
+        to_heal = min(to_heal, 55)
+        caller.traits.hp.current += max(to_heal, 0)
         caller.cooldowns.add("global_cooldown", 2)
         caller.cooldowns.add("restoration", 10)
+        caller.traits.fp.current -= self.cost
 
         msg = f"|M$pron(Your) rocky exterior begins to shift and mend. Cracks seal themselves as stones and minerals realign, drawn from the surrounding ground."
         caller.location.msg_contents(msg, from_obj=caller)
@@ -1053,11 +1049,13 @@ class CmdEarthquake(PowerCommand):
     guild_level = 20
     cost = 30
 
-    def _calculate_damage(self, seismic_awareness, guild_level):
+    def _calculate_damage(self):
         base_value = 50
+        seismic_awareness = self.caller.db.skills.get("seismic awareness", 1)
         seismic_awareness_weight = 15
         wisdom_weight = 0.75
         wisdom = self.caller.traits.wis.value
+        guild_level = self.caller.db.guild_level
         guild_level_weight = 1.5
         # 50 + 80 + 25 + 30
 
@@ -1100,9 +1098,8 @@ class CmdEarthquake(PowerCommand):
         caller.traits.fp.current -= self.cost
         caller.cooldowns.add("earthquake", 10)
         caller.cooldowns.add("global_cooldown", 2)
-        skill_rank = caller.db.skills.get("seismic awareness", 1)
 
-        damage = self._calculate_damage(skill_rank, caller.traits.str.value, glvl)
+        damage = self._calculate_damage()
         for obj in caller.location.contents:
             if obj.db.can_attack == True:
                 obj.at_damage(caller, damage, "blunt", "earthquake")
@@ -1146,7 +1143,7 @@ class CmdEnervate(PowerCommand):
 
         energy_drained = randint(vitality, vitality * 2) + skill_rank * 10
 
-        caller.traits.fp.current -= self.fp.cost
+        caller.traits.fp.current -= self.fp_cost
         caller.traits.ep.current += energy_drained
         caller.traits.ep.current -= energy_drained
 

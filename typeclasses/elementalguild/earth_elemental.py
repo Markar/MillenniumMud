@@ -278,6 +278,9 @@ class EarthElemental(Elemental):
         # Apply (worn) defense reduction
         damage -= self.defense(damage_type)
 
+        if self.tags.get("meditating", category="status"):
+            self.tags.remove("meditating", category="status")
+
         # Flat damage reduction - 50 con = 5 reduction, glvl 30 = 1.5 reduction
         flat_reduction = con * 0.1 + glvl * 0.05
 

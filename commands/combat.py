@@ -285,34 +285,6 @@ class CmdWearNew(CmdWear):
         super().func()
 
 
-# class CmdFireball(Command):
-#     """
-#     Casts a fireball
-
-#     Usage:
-#         fireball
-#     """
-
-#     key = "fireball"
-#     help_category = "combat"
-
-#     def func(self):
-#         print(f"self.caller: {self.caller}")
-#         print(f"self.args: {self.args}")
-#         caller = self.caller
-#         target = self.args
-#         location = self.caller.location
-#         cscript = location.scripts.get("combat")[0]
-#         cscript.add_combatant(self, enemy=target)
-#         print(f"location: {cscript}")
-
-#         target = caller.search(target)
-#         print(f"target: {target}")
-#         caller.db.combat_target = target
-#         # if caller.in_combat:
-#         caller.use_fireball(target)
-
-
 class CmdRespawn(Command):
     """
     Return to the center of town when defeated, with full health.

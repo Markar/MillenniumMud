@@ -52,7 +52,10 @@ class CombatScript(Script):
         return [
             obj
             for obj in self.fighters
-            if not any(obj.tags.has(["unconscious", "dead", "defeated"]))
+            if obj is not None
+            and not any(
+                obj.tags.has(tag) for tag in ["unconscious", "dead", "defeated"]
+            )
         ]
 
     def at_script_creation(self):
